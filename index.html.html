@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html lang="vi" class="h-full dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cú Đêm Lắng Nghe - Trợ Lý Thấu Hiểu Giấc Ngủ</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        midnight: {
+                            900: '#0B0F19',
+                            800: '#111827',
+                            700: '#1E293B',
+                            600: '#334155'
+                        },
+                        cozy: {
+                            purple: '#A855F7',
+                            violet: '#8B5CF6',
+                            indigo: '#6366F1',
+                            amber: '#F59E0B',
+                            rose: '#F43F5E'
+                        }
+                    },
+                    animation: {
+                        'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'float': 'float 6s ease-in-out infinite',
+                        'breath': 'breath 19s infinite ease-in-out',
+                    },
+                    keyframes: {
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-8px)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Google Fonts & Lucide Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #070A12;
+            color: #F3F4F6;
+        }
+
+        /* Ambient Stars Sky */
+        .stars-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+            overflow: hidden;
+        }
+        .star {
+            position: absolute;
+            background-color: #fff;
+            border-radius: 50%;
+            opacity: 0.3;
+            animation: twinkle var(--duration, 3s) infinite ease-in-out;
+        }
+        @keyframes twinkle {
+            0%, 100% { opacity: 0.2; transform: scale(0.8); }
+            50% { opacity: 0.9; transform: scale(1.2); }
+        }
+
+        /* Scrollbar Styling */
+        ::-webkit-scrollbar {
+            width: 5px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(139, 92, 246, 0.25);
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(139, 92, 246, 0.5);
+        }
+
+        /* Breathing Circle Animation for 4-7-8 method */
+        @keyframes breathCycle {
+            0% { transform: scale(1); opacity: 0.7; content: 'Hít vào (4s)'; }
+            21% { transform: scale(1.6); opacity: 1; } /* 4s in (out of 19s total) */
+            58% { transform: scale(1.6); opacity: 0.9; } /* Hold 7s (4s to 11s) */
+            100% { transform: scale(1); opacity: 0.7; } /* Exhale 8s (11s to 19s) */
+        }
+        .breath-active {
+            animation: breathCycle 19s ease-in-out infinite;
+        }
+
+        /* Custom Glassmorphism */
+        .glass-panel {
+            background: rgba(17, 24, 39, 0.75);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+    </style>
+</head>
+<body class="h-full flex flex-col relative overflow-hidden text-gray-200">
+
+    <!-- Background Stars FX -->
+    <div class="stars-container" id="starsBg"></div>
+
+    <!-- Top Navigation Header -->
+    <header class="h-16 glass-panel border-b border-slate-800/80 sticky top-0 z-20 px-4 lg:px-8 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+            <div class="relative">
+                <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-violet-600 via-indigo-600 to-amber-400 flex items-center justify-center text-white shadow-lg shadow-violet-500/20 animate-float">
+                    <i data-lucide="moon" class="w-5 h-5 fill-amber-300 text-amber-300"></i>
+                </div>
+                <span class="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-emerald-400 border-2 border-slate-900"></span>
+            </div>
+            <div>
+                <h1 class="font-bold text-base md:text-lg text-white flex items-center gap-2">
+                    Cú Đêm Lắng Nghe
+                    <span class="text-[10px] bg-violet-500/20 text-violet-300 border border-violet-500/30 px-2 py-0.5 rounded-full font-medium">Bạn Đồng Hành Đêm Muộn</span>
+                </h1>
+                <p class="text-xs text-slate-400 flex items-center gap-1">
+                    <span>Lắng nghe tâm sự & giải tỏa "Trả Thù Giấc Ngủ"</span>
+                </p>
+            </div>
+        </div>
+
+        <!-- Right Tool Bar -->
+        <div class="flex items-center gap-2">
+            <!-- Clock & Late Night Alert -->
+            <div id="nightClockBadge" class="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-800/80 border border-slate-700/50 text-xs font-mono text-amber-300/90">
+                <i data-lucide="clock" class="w-3.5 h-3.5 text-amber-400"></i>
+                <span id="currentTimeText">00:00</span>
+            </div>
+
+            <!-- Wind-down Mode Toggle Button -->
+            <button onclick="toggleWindDownModal()" title="Chế độ Thư Giãn & Ngủ Ngon" class="px-3 py-1.5 rounded-xl bg-violet-600/30 hover:bg-violet-600/50 border border-violet-500/40 text-violet-200 text-xs font-medium flex items-center gap-1.5 transition-all shadow-sm">
+                <i data-lucide="sparkles" class="w-4 h-4 text-amber-300"></i>
+                <span class="hidden md:inline">Thư Giãn Ngủ Ngon</span>
+            </button>
+
+            <!-- Gemini API Config -->
+            <button onclick="openApiModal()" title="Cài đặt API Key" class="p-2 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-300 border border-slate-700/50 transition-colors relative">
+                <i data-lucide="key" class="w-4 h-4"></i>
+                <span id="apiDot" class="absolute top-1 right-1 w-2 h-2 rounded-full bg-amber-500"></span>
+            </button>
+
+            <!-- Reset Chat -->
+            <button onclick="confirmClearChat()" title="Xóa cuộc trò chuyện" class="p-2 rounded-xl bg-slate-800/80 hover:bg-red-500/20 text-slate-400 hover:text-red-300 border border-slate-700/50 transition-colors">
+                <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Chat Window Area -->
+    <main class="flex-1 overflow-y-auto p-4 md:p-6 max-w-4xl w-full mx-auto space-y-6 relative z-10" id="chatContainer">
+        
+        <!-- Night Time Procrastination Warning Banner -->
+        <div id="nightWarningBanner" class="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-between text-xs text-amber-200/90 backdrop-blur-md">
+            <div class="flex items-center gap-2.5">
+                <i data-lucide="coffee" class="w-4 h-4 text-amber-400 shrink-0"></i>
+                <span id="nightAdviceMsg">Bạn đang dùng lại thời gian đêm để bù đắp cho một ngày thiếu tự do? Thả lỏng nhé, ở đây không ai hối thúc bạn cả.</span>
+            </div>
+            <button onclick="document.getElementById('nightWarningBanner').remove()" class="text-slate-400 hover:text-slate-200 ml-2">
+                <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+        </div>
+
+        <!-- Welcome Hero Component -->
+        <div id="welcomeScreen" class="text-center py-8 px-4">
+            <div class="w-16 h-16 bg-gradient-to-tr from-violet-600/30 to-amber-500/20 border border-violet-500/30 text-amber-300 rounded-3xl flex items-center justify-center mx-auto mb-4 shadow-xl shadow-violet-950/50">
+                <i data-lucide="cloud-moon" class="w-8 h-8"></i>
+            </div>
+            <h2 class="text-xl md:text-2xl font-bold text-white mb-2">Đêm đã muộn rồi, bạn vẫn chưa ngủ sao?</h2>
+            <p class="text-slate-400 max-w-md mx-auto mb-6 text-xs md:text-sm leading-relaxed">
+                "Trả thù giấc ngủ" (Revenge Bedtime Procrastination) là khi chúng ta thức muộn chỉ vì muốn níu giữ chút thời gian tự do cho riêng mình. Hãy chia sẻ với Cú Đêm nhé!
+            </p>
+
+            <!-- Quick Suggestions Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 max-w-2xl mx-auto text-left" id="promptChips">
+                <button onclick="usePrompt('Vì sao ban ngày bận rộn mà đêm xuống tôi lại không muốn đi ngủ?')" class="p-3.5 rounded-2xl glass-panel hover:bg-slate-800/90 border border-slate-700/60 hover:border-violet-500/50 transition-all group flex items-start gap-3">
+                    <div class="p-2 rounded-xl bg-violet-500/10 text-violet-400 group-hover:scale-105 transition-transform shrink-0">
+                        <i data-lucide="help-circle" class="w-4 h-4"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-medium text-xs md:text-sm text-slate-200 group-hover:text-violet-300">Tại sao tôi không muốn ngủ?</h3>
+                        <p class="text-[11px] text-slate-400 mt-0.5">Tìm hiểu về cảm giác thèm tự do ban đêm</p>
+                    </div>
+                </button>
+
+                <button onclick="usePrompt('Làm sao để dừng lướt điện thoại vô thức trước khi đi ngủ?')" class="p-3.5 rounded-2xl glass-panel hover:bg-slate-800/90 border border-slate-700/60 hover:border-violet-500/50 transition-all group flex items-start gap-3">
+                    <div class="p-2 rounded-xl bg-amber-500/10 text-amber-400 group-hover:scale-105 transition-transform shrink-0">
+                        <i data-lucide="smartphone" class="w-4 h-4"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-medium text-xs md:text-sm text-slate-200 group-hover:text-amber-300">Dừng lướt điện thoại ban đêm</h3>
+                        <p class="text-[11px] text-slate-400 mt-0.5">Mẹo đơn giản cai "Doomscrolling"</p>
+                    </div>
+                </button>
+
+                <button onclick="usePrompt('Thức khuya để tìm lại thời gian cho bản thân có phải là sai không?')" class="p-3.5 rounded-2xl glass-panel hover:bg-slate-800/90 border border-slate-700/60 hover:border-violet-500/50 transition-all group flex items-start gap-3">
+                    <div class="p-2 rounded-xl bg-indigo-500/10 text-indigo-400 group-hover:scale-105 transition-transform shrink-0">
+                        <i data-lucide="heart" class="w-4 h-4"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-medium text-xs md:text-sm text-slate-200 group-hover:text-indigo-300">Tự do hay Tự thương mình?</h3>
+                        <p class="text-[11px] text-slate-400 mt-0.5">Giải mã tâm lý áp lực công việc ban ngày</p>
+                    </div>
+                </button>
+
+                <button onclick="usePrompt('Hôm nay tôi đã trải qua một ngày rất áp lực và kiệt sức...')" class="p-3.5 rounded-2xl glass-panel hover:bg-slate-800/90 border border-slate-700/60 hover:border-violet-500/50 transition-all group flex items-start gap-3">
+                    <div class="p-2 rounded-xl bg-rose-500/10 text-rose-400 group-hover:scale-105 transition-transform shrink-0">
+                        <i data-lucide="feather" class="w-4 h-4"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-medium text-xs md:text-sm text-slate-200 group-hover:text-rose-300">Tâm sự về một ngày áp lực</h3>
+                        <p class="text-[11px] text-slate-400 mt-0.5">Trút bỏ gánh nặng trước khi thả lỏng giấc ngủ</p>
+                    </div>
+                </button>
+            </div>
+        </div>
+
+        <!-- Chat Messages Container -->
+        <div id="messagesList" class="space-y-5"></div>
+
+        <!-- Typing Indicator -->
+        <div id="typingIndicator" class="hidden flex items-start gap-3">
+            <div class="w-8 h-8 rounded-xl bg-gradient-to-tr from-violet-600 to-indigo-600 flex items-center justify-center text-amber-300 shrink-0 shadow-lg border border-violet-500/30">
+                <i data-lucide="bot" class="w-4 h-4"></i>
+            </div>
+            <div class="glass-panel border border-slate-700/60 rounded-2xl rounded-tl-none p-4 shadow-sm flex items-center gap-2">
+                <span class="w-2 h-2 bg-violet-400 rounded-full animate-bounce" style="animation-delay: 0ms"></span>
+                <span class="w-2 h-2 bg-indigo-400 rounded-full animate-bounce" style="animation-delay: 150ms"></span>
+                <span class="w-2 h-2 bg-amber-400 rounded-full animate-bounce" style="animation-delay: 300ms"></span>
+                <span class="text-xs text-slate-400 ml-2">Cú Đêm đang lắng nghe và suy ngẫm...</span>
+            </div>
+        </div>
+    </main>
+
+    <!-- Bottom Input Area -->
+    <footer class="p-3 md:p-4 glass-panel border-t border-slate-800/80 sticky bottom-0 z-20">
+        <div class="max-w-4xl mx-auto">
+            <form id="chatForm" onsubmit="handleSendMessage(event)" class="relative flex items-end bg-slate-900/90 rounded-2xl border border-slate-700/70 focus-within:border-violet-500/80 focus-within:ring-2 focus-within:ring-violet-500/20 transition-all p-2">
+                <!-- Text Area Input -->
+                <textarea 
+                    id="userInput" 
+                    rows="1" 
+                    placeholder="Viết điều gì đó với Cú Đêm... (Ví dụ: Đêm nay tôi lại thức đến 2h rồi)" 
+                    class="w-full bg-transparent resize-none border-none outline-none focus:ring-0 text-xs md:text-sm text-slate-100 placeholder-slate-500 max-h-32 min-h-[42px] py-2.5 px-3"
+                    onkeydown="handleKeyDown(event)"
+                    oninput="autoResizeTextarea(this)"></textarea>
+
+                <div class="flex items-center gap-1 shrink-0 pb-1 pr-1">
+                    <button type="submit" id="sendBtn" class="p-2.5 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white rounded-xl shadow-lg shadow-violet-950/50 transition-all flex items-center justify-center disabled:opacity-50">
+                        <i data-lucide="send" class="w-4 h-4"></i>
+                    </button>
+                </div>
+            </form>
+            <div class="flex items-center justify-between text-[11px] text-slate-500 mt-2 px-1">
+                <span>Trò chuyện đồng cảm • Không phán xét • Hãy giữ lòng bình yên</span>
+                <button onclick="toggleWindDownModal()" class="text-violet-400 hover:underline">Chế độ hít thở 4-7-8 & Tiếng mưa</button>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Wind-down Sleep Modal (Hít thở 4-7-8 & Ambient Sound) -->
+    <div id="windDownModal" class="fixed inset-0 bg-slate-950/85 backdrop-blur-xl z-50 flex items-center justify-center hidden p-4">
+        <div class="glass-panel rounded-3xl p-6 md:p-8 max-w-lg w-full shadow-2xl border border-violet-500/30 relative text-center">
+            <button onclick="toggleWindDownModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white p-2 rounded-full hover:bg-slate-800">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+
+            <div class="inline-flex p-3 bg-violet-500/10 text-violet-300 rounded-2xl mb-3">
+                <i data-lucide="moon-star" class="w-6 h-6"></i>
+            </div>
+            <h3 class="text-xl font-bold text-white mb-1">Góc Thư Giãn Chuẩn Bị Ngủ</h3>
+            <p class="text-xs text-slate-400 mb-6">Thả lỏng cơ thể, lắng nghe âm thanh và cùng hít thở sâu để xoa dịu tâm trí nhé.</p>
+
+            <!-- Interactive Breathing Circle 4-7-8 -->
+            <div class="my-6 flex flex-col items-center justify-center min-h-[160px]">
+                <div id="breathCircle" class="w-28 h-28 rounded-full border-2 border-violet-400/40 bg-gradient-to-tr from-violet-600/20 to-amber-500/20 flex items-center justify-center text-xs text-amber-200 font-medium transition-transform shadow-2xl shadow-violet-500/20">
+                    <span id="breathStatusText">Sẵn sàng</span>
+                </div>
+                <button id="breathBtn" onclick="toggleBreathing()" class="mt-5 px-4 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 text-xs font-semibold text-white transition-all shadow-md">
+                    Bắt đầu bài tập hít thở 4-7-8
+                </button>
+            </div>
+
+            <!-- Ambient Sound Generator (Web Audio Synthesizer Noise) -->
+            <div class="mt-6 pt-6 border-t border-slate-800/80 text-left">
+                <label class="block text-xs font-semibold text-slate-300 mb-3 flex items-center justify-between">
+                    <span class="flex items-center gap-2">
+                        <i data-lucide="cloud-rain" class="w-4 h-4 text-indigo-400"></i>
+                        Âm Thanh Tiếng Mưa Đêm
+                    </span>
+                    <span id="audioStatusText" class="text-[10px] text-slate-500">Tắt</span>
+                </label>
+                <div class="flex items-center gap-3">
+                    <button id="rainToggleBtn" onclick="toggleRainSound()" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs text-slate-200 border border-slate-700 flex items-center gap-2">
+                        <i data-lucide="play" id="rainIcon" class="w-3.5 h-3.5"></i>
+                        <span id="rainBtnText">Bật tiếng mưa</span>
+                    </button>
+                    <input type="range" id="rainVolume" min="0" max="1" step="0.05" value="0.3" oninput="changeRainVolume(this.value)" class="flex-1 accent-violet-500 h-1.5 bg-slate-800 rounded-lg">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gemini API Key Modal -->
+    <div id="apiModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center hidden p-4">
+        <div class="glass-panel rounded-2xl p-6 max-w-md w-full shadow-2xl border border-slate-700">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-base font-bold text-white flex items-center gap-2">
+                    <i data-lucide="key" class="w-4 h-4 text-amber-400"></i>
+                    Cấu Hình Gemini API Key
+                </h3>
+                <button onclick="closeApiModal()" class="text-slate-400 hover:text-white">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            
+            <p class="text-xs text-slate-300 mb-4 leading-relaxed">
+                Nhập <b>Google Gemini API Key</b> để trò chuyện trực tiếp với trí tuệ nhân tạo Gemini 3 Flash. Nếu không nhập, hệ thống sẽ chạy ở chế độ <b>Demo Lắng Nghe Thông Minh</b> chuyên biệt.
+            </p>
+
+            <div class="space-y-3">
+                <input type="password" id="apiKeyInput" placeholder="Dán Gemini API Key tại đây (AIzaSy...)" class="w-full px-3 py-2.5 bg-slate-900 border border-slate-700 rounded-xl outline-none focus:border-violet-500 text-xs text-slate-100">
+                <div class="text-[11px] text-slate-400">
+                    Chưa có API Key? <a href="https://aistudio.google.com/app/apikey" target="_blank" class="text-violet-400 underline">Lấy API Key miễn phí tại Google AI Studio</a>.
+                </div>
+            </div>
+
+            <div class="mt-6 flex justify-end gap-2">
+                <button onclick="clearApiKey()" class="px-3.5 py-2 text-xs text-rose-400 hover:bg-rose-500/10 rounded-xl">Xóa Key</button>
+                <button onclick="saveApiKey()" class="px-4 py-2 text-xs bg-violet-600 hover:bg-violet-500 text-white font-medium rounded-xl shadow">Lưu lại</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- App Logic Script -->
+    <script>
+        // State Management
+        let chatHistory = [];
+        let apiKey = localStorage.getItem('gemini_api_key') || '';
+        let isProcessing = false;
+        let isBreathing = false;
+        let breathTimer = null;
+
+        // Ambient Rain Noise Generator Variables
+        let audioCtx = null;
+        let rainNoiseNode = null;
+        let rainGainNode = null;
+        let isRainPlaying = false;
+
+        // On Load Initializer
+        window.addEventListener('DOMContentLoaded', () => {
+            lucide.createIcons();
+            generateStarsSky();
+            updateApiStatusBadge();
+            startNightClock();
+            loadLocalChatHistory();
+        });
+
+        // Generate Ambient Twinkling Stars
+        function generateStarsSky() {
+            const container = document.getElementById('starsBg');
+            const count = 70;
+            for (let i = 0; i < count; i++) {
+                const star = document.createElement('div');
+                star.className = 'star';
+                const size = Math.random() * 2 + 1;
+                star.style.width = `${size}px`;
+                star.style.height = `${size}px`;
+                star.style.top = `${Math.random() * 100}%`;
+                star.style.left = `${Math.random() * 100}%`;
+                star.style.setProperty('--duration', `${Math.random() * 3 + 2}s`);
+                container.appendChild(star);
+            }
+        }
+
+        // Night Clock & Advice Updater
+        function startNightClock() {
+            const updateClock = () => {
+                const now = new Date();
+                const hours = String(now.getHours()).padStart(2, '0');
+                const minutes = String(now.getMinutes()).padStart(2, '0');
+                const clockText = `${hours}:${minutes}`;
+                document.getElementById('currentTimeText').innerText = clockText;
+
+                const h = now.getHours();
+                const adviceEl = document.getElementById('nightAdviceMsg');
+                if (adviceEl) {
+                    if (h >= 0 && h < 3) {
+                        adviceEl.innerText = "Đã qua nửa đêm rồi. Thức muộn thêm 1 tiếng sẽ khiến cơ thể mệt mỏi gấp đôi vào sáng mai đấy!";
+                    } else if (h >= 3 && h < 5) {
+                        adviceEl.innerText = "Trời sắp sáng rồi. Hãy buông điện thoại xuống và nhắm mắt lại nghỉ ngơi một chút nhé!";
+                    } else if (h >= 22 || h === 23) {
+                        adviceEl.innerText = "Bạn đang níu giữ thời gian tự do cuối ngày đúng không? Lắng nghe cơ thể mình nào.";
+                    }
+                }
+            };
+            updateClock();
+            setInterval(updateClock, 30000);
+        }
+
+        // Textarea Auto-resize
+        function autoResizeTextarea(textarea) {
+            textarea.style.height = 'auto';
+            textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px';
+        }
+
+        function handleKeyDown(event) {
+            if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault();
+                document.getElementById('chatForm').requestSubmit();
+            }
+        }
+
+        // Prompt Chips Click Action
+        function usePrompt(text) {
+            const input = document.getElementById('userInput');
+            input.value = text;
+            autoResizeTextarea(input);
+            input.focus();
+        }
+
+        // Modal API Handlers
+        function openApiModal() {
+            document.getElementById('apiKeyInput').value = apiKey;
+            document.getElementById('apiModal').classList.remove('hidden');
+        }
+
+        function closeApiModal() {
+            document.getElementById('apiModal').classList.add('hidden');
+        }
+
+        function saveApiKey() {
+            const val = document.getElementById('apiKeyInput').value.trim();
+            apiKey = val;
+            if (apiKey) {
+                localStorage.setItem('gemini_api_key', apiKey);
+            } else {
+                localStorage.removeItem('gemini_api_key');
+            }
+            updateApiStatusBadge();
+            closeApiModal();
+        }
+
+        function clearApiKey() {
+            apiKey = '';
+            localStorage.removeItem('gemini_api_key');
+            document.getElementById('apiKeyInput').value = '';
+            updateApiStatusBadge();
+            closeApiModal();
+        }
+
+        function updateApiStatusBadge() {
+            const dot = document.getElementById('apiDot');
+            if (apiKey) {
+                dot.className = "absolute top-1 right-1 w-2 h-2 rounded-full bg-emerald-400";
+            } else {
+                dot.className = "absolute top-1 right-1 w-2 h-2 rounded-full bg-amber-400";
+            }
+        }
+
+        // Wind-down Sleep Modal Logic
+        function toggleWindDownModal() {
+            const modal = document.getElementById('windDownModal');
+            modal.classList.toggle('hidden');
+        }
+
+        // 4-7-8 Breathing Circle Routine
+        function toggleBreathing() {
+            const circle = document.getElementById('breathCircle');
+            const status = document.getElementById('breathStatusText');
+            const btn = document.getElementById('breathBtn');
+
+            if (!isBreathing) {
+                isBreathing = true;
+                btn.innerText = "Dừng bài tập";
+                circle.classList.add('breath-active');
+                
+                let step = 0;
+                const cycleText = () => {
+                    if (!isBreathing) return;
+                    status.innerText = "Hít vào (4s)";
+                    setTimeout(() => {
+                        if (isBreathing) status.innerText = "Giữ khí (7s)";
+                    }, 4000);
+                    setTimeout(() => {
+                        if (isBreathing) status.innerText = "Thở ra (8s)";
+                    }, 11000);
+                };
+
+                cycleText();
+                breathTimer = setInterval(cycleText, 19000);
+            } else {
+                isBreathing = false;
+                btn.innerText = "Bắt đầu bài tập hít thở 4-7-8";
+                circle.classList.remove('breath-active');
+                status.innerText = "Nghỉ ngơi";
+                clearInterval(breathTimer);
+            }
+        }
+
+        // Synthetic Rain Audio Generator (Pink Noise + Filter)
+        function toggleRainSound() {
+            if (!isRainPlaying) {
+                if (!audioCtx) {
+                    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+
+                // Create Pink Noise
+                const bufferSize = audioCtx.sampleRate * 2;
+                const noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+                const output = noiseBuffer.getChannelData(0);
+                let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0;
+
+                for (let i = 0; i < bufferSize; i++) {
+                    const white = Math.random() * 2 - 1;
+                    b0 = 0.99886 * b0 + white * 0.0555179;
+                    b1 = 0.99332 * b1 + white * 0.0750759;
+                    b2 = 0.96900 * b2 + white * 0.1538520;
+                    b3 = 0.86650 * b3 + white * 0.3104856;
+                    b4 = 0.55000 * b4 + white * 0.5329522;
+                    b5 = -0.7616 * b5 - white * 0.0168980;
+                    output[i] = b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362;
+                    output[i] *= 0.11;
+                    b6 = white * 0.115926;
+                }
+
+                rainNoiseNode = audioCtx.createBufferSource();
+                rainNoiseNode.buffer = noiseBuffer;
+                rainNoiseNode.loop = true;
+
+                // Lowpass filter for cozy rain feel
+                const filter = audioCtx.createBiquadFilter();
+                filter.type = 'lowpass';
+                filter.frequency.value = 1000;
+
+                rainGainNode = audioCtx.createGain();
+                const vol = document.getElementById('rainVolume').value;
+                rainGainNode.gain.value = vol;
+
+                rainNoiseNode.connect(filter);
+                filter.connect(rainGainNode);
+                rainGainNode.connect(audioCtx.destination);
+
+                rainNoiseNode.start();
+                isRainPlaying = true;
+
+                document.getElementById('rainBtnText').innerText = "Tắt tiếng mưa";
+                document.getElementById('audioStatusText').innerText = "Đang phát";
+                document.getElementById('audioStatusText').className = "text-[10px] text-emerald-400 font-medium";
+            } else {
+                if (rainNoiseNode) {
+                    rainNoiseNode.stop();
+                    rainNoiseNode.disconnect();
+                }
+                isRainPlaying = false;
+                document.getElementById('rainBtnText').innerText = "Bật tiếng mưa";
+                document.getElementById('audioStatusText').innerText = "Tắt";
+                document.getElementById('audioStatusText').className = "text-[10px] text-slate-500";
+            }
+        }
+
+        function changeRainVolume(val) {
+            if (rainGainNode) {
+                rainGainNode.gain.value = val;
+            }
+        }
+
+        // Render Message UI
+        function appendMessage(role, text) {
+            const welcome = document.getElementById('welcomeScreen');
+            if (welcome) welcome.classList.add('hidden');
+
+            const container = document.getElementById('messagesList');
+            const isUser = role === 'user';
+
+            const msgDiv = document.createElement('div');
+            msgDiv.className = `flex items-start gap-3 ${isUser ? 'flex-row-reverse' : ''}`;
+
+            const avatar = isUser
+                ? `<div class="w-8 h-8 rounded-xl bg-slate-700 text-slate-200 flex items-center justify-center shrink-0 font-semibold text-xs border border-slate-600">Bạn</div>`
+                : `<div class="w-8 h-8 rounded-xl bg-gradient-to-tr from-violet-600 to-indigo-600 text-amber-300 flex items-center justify-center shrink-0 shadow border border-violet-500/30"><i data-lucide="bot" class="w-4 h-4"></i></div>`;
+
+            const bgStyle = isUser
+                ? 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white rounded-tr-none shadow-md'
+                : 'glass-panel text-slate-100 border border-slate-700/70 rounded-tl-none shadow-sm';
+
+            // Simple formatting for line breaks
+            const formattedText = text
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/\n/g, '<br/>');
+
+            msgDiv.innerHTML = `
+                ${avatar}
+                <div class="max-w-[85%] md:max-w-[75%] rounded-2xl p-4 text-xs md:text-sm leading-relaxed ${bgStyle}">
+                    ${formattedText}
+                </div>
+            `;
+
+            container.appendChild(msgDiv);
+            lucide.createIcons();
+            scrollToBottom();
+        }
+
+        function scrollToBottom() {
+            const chatContainer = document.getElementById('chatContainer');
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        // Handle Send Message Event
+        async function handleSendMessage(e) {
+            e.preventDefault();
+            if (isProcessing) return;
+
+            const input = document.getElementById('userInput');
+            const text = input.value.trim();
+            if (!text) return;
+
+            input.value = '';
+            autoResizeTextarea(input);
+
+            appendMessage('user', text);
+            chatHistory.push({ role: 'user', parts: [{ text }] });
+            saveLocalChatHistory();
+
+            isProcessing = true;
+            document.getElementById('sendBtn').disabled = true;
+            document.getElementById('typingIndicator').classList.remove('hidden');
+            scrollToBottom();
+
+            try {
+                let replyText = '';
+                if (apiKey) {
+                    replyText = await fetchGeminiResponse();
+                } else {
+                    replyText = await fetchDemoBedtimeResponse(text);
+                }
+
+                appendMessage('model', replyText);
+                chatHistory.push({ role: 'model', parts: [{ text: replyText }] });
+                saveLocalChatHistory();
+            } catch (err) {
+                console.error(err);
+                appendMessage('model', '⚠️ Đã xảy ra gián đoạn nhỏ khi kết nối. Đừng lo lắng, hãy thử gửi lại câu hỏi hoặc bật chế độ hít thở nhé.');
+            } finally {
+                isProcessing = false;
+                document.getElementById('sendBtn').disabled = false;
+                document.getElementById('typingIndicator').classList.add('hidden');
+                scrollToBottom();
+            }
+        }
+
+        // Gemini Real API Request
+        async function fetchGeminiResponse() {
+            const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
+            const systemPrompt = `Bạn tên là "Cú Đêm Lắng Nghe" - một người bạn đồng hành ấm áp, thấu hiểu, không phán xét, chuyên lắng nghe những người mắc hội chứng Trả Thù Giấc Ngủ (Revenge Bedtime Procrastination). 
+            Hãy trò chuyện bằng giọng văn nhẹ nhàng, êm dịu, vỗ về tâm trạng của họ vào đêm muộn. Giải thích lý do vì sao họ thèm tự do ban đêm, gợi ý cách buông bỏ áp lực công việc để ngủ ngon mà không mang cảm giác tội lỗi.
+            Trả lời ngắn gọn, tinh tế, sử dụng tiếng Việt tự nhiên.`;
+
+            const payload = {
+                contents: chatHistory,
+                systemInstruction: { parts: [{ text: systemPrompt }] }
+            };
+
+            const response = await fetch(endpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) {
+                throw new Error(`API Error Code: ${response.status}`);
+            }
+
+            const data = await response.json();
+            return data.candidates?.[0]?.content?.parts?.[0]?.text || 'Cú Đêm vẫn ở đây lắng nghe bạn...';
+        }
+
+        // Intelligent Bedtime Procrastination Demo Bot
+        function fetchDemoBedtimeResponse(userText) {
+            return new Promise((resolve) => {
+                setTimeout(() => {
+                    const lower = userText.toLowerCase();
+                    let reply = "";
+
+                    if (lower.includes("tại sao") || lower.includes("sao ban ngày") || lower.includes("không muốn ngủ")) {
+                        reply = "Hiện tượng bạn đang trải qua gọi là 'Trả thù giấc ngủ' (Revenge Bedtime Procrastination).\n\n" +
+                                "Khi ban ngày bạn phải dành quá nhiều năng lượng cho công việc, học tập hoặc đáp ứng kỳ vọng của người khác, bạn cảm thấy mình không có quyền kiểm soát thời gian. Đêm xuống là lúc duy nhất bạn cảm thấy hoàn toàn thuộc về chính mình. Vì vậy, não bộ cố tình 'trả thù' bằng cách hoãn việc ngủ để níu giữ khoảng không gian tự do này.\n\n" +
+                                "Bạn không hề lười biếng đâu, chỉ là bạn đang rất cần thời gian riêng cho bản thân mà thôi 🌙.";
+                    } else if (lower.includes("điện thoại") || lower.includes("lướt") || lower.includes("doomscroll")) {
+                        reply = "Lướt điện thoại ban đêm là cách dễ nhất để não bộ nhận lượng Dopamine nhanh chóng nhằm giải tỏa căng thẳng.\n\n" +
+                                "Mẹo nhỏ cho bạn đêm nay:\n" +
+                                "1. Hãy thử chuyển màn hình điện thoại sang màu xám (Grayscale).\n" +
+                                "2. Đặt điện thoại xa tầm tay khoảng 1-2 mét.\n" +
+                                "3. Mở góc 'Thư Giãn Ngủ Ngon' ở góc trên để bật tiếng mưa và tập hít thở 4-7-8 trong 3 phút.";
+                    } else if (lower.includes("áp lực") || lower.includes("mệt") || lower.includes("kiệt sức")) {
+                        reply = "Thương bạn thật nhiều... Hôm nay bạn đã gánh vác rất nhiều trách nhiệm rồi đúng không?\n\n" +
+                                "Hãy tự hít một hơi thật sâu và nói với chính mình: 'Hôm nay mình đã làm rất tốt rồi. Công việc của ngày mai cứ để ngày mai tính.'\n\n" +
+                                "Bây giờ không ai đòi hỏi điều gì ở bạn nữa cả. Hãy thả lỏng bờ vai và buông mi mắt xuống nhé 💜.";
+                    } else if (lower.includes("sai") || lower.includes("tội lỗi")) {
+                        reply = "Cảm giác muốn có thời gian cho riêng mình chưa bao giờ là sai cả.\n\n" +
+                                "Tuy nhiên, cách tốt nhất để thương bản thân là cho cơ thể được phục hồi năng lượng thông qua giấc ngủ. Ngủ sớm không phải là mất đi thời gian tự do, mà là chuẩn bị một sự minh mẫn cho ngày mai.";
+                    } else {
+                        reply = `Cú Đêm rất hiểu cảm giác của bạn khi thức muộn như thế này: "${userText}".\n\n` +
+                                `Màn đêm thật yên tĩnh, nhưng sức khỏe của bạn vẫn là ưu tiên hàng đầu. Bạn có muốn thử bật bài tập hít thở 4-7-8 hoặc nghe tiếng mưa rơi nhẹ nhàng để dễ chìm vào giấc ngủ hơn không?\n\n` +
+                                `(Mẹo: Nhập Gemini API Key ở biểu tượng chìa khóa góc trên để Cú Đêm trò chuyện sâu sắc hơn cùng bạn nhé!)`;
+                    }
+                    resolve(reply);
+                }, 1100);
+            });
+        }
+
+        // Save & Restore Local Storage History
+        function saveLocalChatHistory() {
+            localStorage.setItem('bedtime_chat_history', JSON.stringify(chatHistory));
+        }
+
+        function loadLocalChatHistory() {
+            const saved = localStorage.getItem('bedtime_chat_history');
+            if (saved) {
+                try {
+                    chatHistory = JSON.parse(saved);
+                    if (chatHistory.length > 0) {
+                        const welcome = document.getElementById('welcomeScreen');
+                        if (welcome) welcome.classList.add('hidden');
+                        chatHistory.forEach(msg => {
+                            const role = msg.role === 'user' ? 'user' : 'model';
+                            const text = msg.parts[0]?.text || '';
+                            appendMessage(role, text);
+                        });
+                    }
+                } catch (e) {
+                    console.error("Lỗi khôi phục lịch sử chat", e);
+                }
+            }
+        }
+
+        function confirmClearChat() {
+            if (confirm("Bạn có muốn xóa toàn bộ tâm sự đêm nay để bắt đầu lại không?")) {
+                chatHistory = [];
+                localStorage.removeItem('bedtime_chat_history');
+                document.getElementById('messagesList').innerHTML = '';
+                const welcome = document.getElementById('welcomeScreen');
+                if (welcome) welcome.classList.remove('hidden');
+            }
+        }
+    </script>
+</body>
+</html>
